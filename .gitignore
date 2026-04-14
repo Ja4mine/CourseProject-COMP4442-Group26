@@ -1,0 +1,29 @@
+# Maven build output
+target/
+
+# Java compiled files
+*.class
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+
+# IDE files (Eclipse/IntelliJ/VS Code)
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# Environment files
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.swp
