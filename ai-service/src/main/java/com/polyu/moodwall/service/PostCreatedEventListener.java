@@ -27,20 +27,20 @@ public class PostCreatedEventListener {
         try {
             String aiComment = commentGenerator.generateComment(event.content());
             log.debug("Generated AI comment for post {}: {}", event.postId(), aiComment);
-            callCoreServiceToApprovePost(event.postId(), aiComment);
+            callCoreServiceToAddAiComment(event.postId(), aiComment);
         } catch (Exception e) {
             log.error("Failed to process post {}: {}", event.postId(), e.getMessage(), e);
         }
     }
 
-    private void callCoreServiceToApprovePost(Long postId, String aiComment) {
-        String url = coreServiceUrl + "/api/posts/{postId}/approve-with-comment";
+    private void callCoreServiceToAddAiComment(Long postId, String aiComment) {
+        String url = coreServiceUrl + "/api/posts/{postId}/ai-comment";
         AiCommentRequest request = new AiCommentRequest(aiComment);
         ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class, postId);
         if (response.getStatusCode().is2xxSuccessful()) {
-            log.info("Successfully approved post {} with AI comment", postId);
+            log.info("Successfully added AI comment to post {}", postId);
         } else {
-            log.error("Failed to approve post {}, status: {}", postId, response.getStatusCode());
+            log.error("Failed to add AI comment to post {}, status: {}", postId, response.getStatusCode());
         }
     }
 }

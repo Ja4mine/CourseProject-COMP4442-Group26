@@ -108,7 +108,7 @@ Create anonymous post.
 ```
 
 ### GET /api/posts
-Get paginated approved posts.
+Get paginated posts.
 
 ### Analytics API
 
