@@ -30,25 +30,19 @@
             postButton: "Post to Mood Wall",
             postingButton: "Posting...",
             anonymousIdLabel: "Anonymous ID",
-            tabApproved: "Approved",
             tabTop: "Hot Posts Board",
             tabLive: "Live Stream",
             sortByTime: "By Time",
             sortByLikes: "By Likes",
             refreshButton: "Refresh",
             insightsTitle: "Live Snapshot",
-            metricApprovedLabel: "Approved Posts",
             metricTopLabel: "Top 24h",
             metricLiveLabel: "Live Events",
             hotTitle: "Top Pulse",
             activityTitle: "Live Activity",
-            emptyApproved: "No approved posts yet. Create one first, or switch to Top 24h.",
             emptyTop: "No hot posts in the last 24h yet.",
             emptyLive: "Waiting for realtime events...",
             emptyPost: "(empty post)",
-            statusApproved: "APPROVED",
-            statusPending: "PENDING",
-            statusUnknown: "UNKNOWN",
             likeButton: "Like ({count})",
             commentButton: "Comment ({count})",
             commentPlaceholder: "Write a comment...",
@@ -100,25 +94,19 @@
             postButton: "发布到心情墙",
             postingButton: "发布中...",
             anonymousIdLabel: "匿名 ID",
-            tabApproved: "已通过",
             tabTop: "热帖板块",
             tabLive: "实时流",
             sortByTime: "按时间",
             sortByLikes: "按点赞",
             refreshButton: "刷新",
             insightsTitle: "实时概览",
-            metricApprovedLabel: "已通过帖子",
             metricTopLabel: "24h 热帖",
             metricLiveLabel: "实时事件",
             hotTitle: "热门脉搏",
             activityTitle: "实时动态",
-            emptyApproved: "当前还没有已通过帖子。可以先发一条，或切换到 24h 热帖查看。",
             emptyTop: "暂时还没有 24h 热帖数据。",
             emptyLive: "等待实时消息进入...",
             emptyPost: "（空帖子）",
-            statusApproved: "已通过",
-            statusPending: "待审核",
-            statusUnknown: "未知",
             likeButton: "点赞 ({count})",
             commentButton: "评论 ({count})",
             commentPlaceholder: "写下评论...",
@@ -170,25 +158,19 @@
             postButton: "發布到心情牆",
             postingButton: "發布中...",
             anonymousIdLabel: "匿名 ID",
-            tabApproved: "已通過",
             tabTop: "熱帖板塊",
             tabLive: "即時流",
             sortByTime: "按時間",
             sortByLikes: "按點讚",
             refreshButton: "刷新",
             insightsTitle: "即時概覽",
-            metricApprovedLabel: "已通過帖子",
             metricTopLabel: "24h 熱帖",
             metricLiveLabel: "即時事件",
             hotTitle: "熱門脈搏",
             activityTitle: "即時動態",
-            emptyApproved: "目前還沒有已通過帖子。可以先發一條，或切換到 24h 熱帖查看。",
             emptyTop: "暫時還沒有 24h 熱帖資料。",
             emptyLive: "等待即時訊息進入...",
             emptyPost: "（空帖子）",
-            statusApproved: "已通過",
-            statusPending: "待審核",
-            statusUnknown: "未知",
             likeButton: "點讚 ({count})",
             commentButton: "評論 ({count})",
             commentPlaceholder: "寫下評論...",
@@ -350,30 +332,6 @@
             }
         }
 
-        function statusClass(status) {
-            if (status === "APPROVED") {
-                return "status-approved";
-            }
-
-            if (status === "PENDING") {
-                return "status-pending";
-            }
-
-            return "status-other";
-        }
-
-        function statusLabel(status) {
-            if (status === "APPROVED") {
-                return t("statusApproved");
-            }
-
-            if (status === "PENDING") {
-                return t("statusPending");
-            }
-
-            return t("statusUnknown");
-        }
-
         function toNumber(value) {
             const numberValue = Number(value);
             return Number.isFinite(numberValue) ? numberValue : 0;
@@ -407,7 +365,6 @@
             <article className="post-card reveal">
                 <div className="post-head">
                     <span className="post-meta">#{post.id ?? "-"} • {formatDate(post.createTime)}</span>
-                    <span className={`status ${statusClass(post.status)}`}>{statusLabel(post.status)}</span>
                 </div>
 
                 <p className="post-content">{post.content || t("emptyPost")}</p>
@@ -565,7 +522,7 @@
         }
 
         async function hydrateMissingCommentCounts(posts) {
-            const targets = (posts || []).filter((post) => post && post.id && post.status === "APPROVED" && Number(post.commentCount) === 0);
+            const targets = (posts || []).filter((post) => post && post.id && Number(post.commentCount) === 0);
 
             await Promise.all(targets.map(async (post) => {
                 try {
@@ -653,10 +610,6 @@
                     client.subscribe("/topic/posts", (message) => {
                         try {
                             const post = JSON.parse(message.body);
-                            if (post.status === "PENDING") {
-                                return;
-                            }
-
                             // Initialize comments array for new post
                             post.comments = post.comments || [];
                             setTopPosts((previous) => prependUnique(previous, post));

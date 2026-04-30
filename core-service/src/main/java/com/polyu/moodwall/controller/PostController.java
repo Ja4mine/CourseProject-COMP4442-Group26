@@ -30,7 +30,7 @@ public class PostController {
     public ResponseEntity<Page<WallPost>> getPosts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<WallPost> posts = wallService.getApprovedPosts(PageRequest.of(page, size));
+        Page<WallPost> posts = wallService.getPosts(PageRequest.of(page, size));
         return ResponseEntity.ok(posts);
     }
 
@@ -63,11 +63,11 @@ public class PostController {
         return ResponseEntity.ok(comments);
     }
 
-    @PostMapping("/{postId}/approve-with-comment")
-    public ResponseEntity<Void> approvePostWithAiComment(
+    @PostMapping("/{postId}/ai-comment")
+    public ResponseEntity<Void> addAiComment(
             @PathVariable Long postId,
             @RequestBody AiCommentRequest request) {
-        wallService.approvePostAndAddAiComment(postId, request.aiComment());
+        wallService.addAiComment(postId, request.aiComment());
         return ResponseEntity.ok().build();
     }
 
