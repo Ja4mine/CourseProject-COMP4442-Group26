@@ -488,7 +488,6 @@
 
         const stompClientRef = useRef(null);
         const reconnectTimerRef = useRef(null);
-        const pendingCommentEchoRef = useRef(new Map());
 
         function t(key, params = {}) {
             return translate(language, key, params);
@@ -563,34 +562,6 @@
             const posts = await response.json();
             // Initialize comments array for each post
             return Array.isArray(posts) ? posts.map(post => ({ ...post, comments: [] })) : [];
-        }
-
-        function markPendingCommentEcho(postId, comment) {
-            if (!postId || !comment) {
-                return;
-            }
-
-            const current = pendingCommentEchoRef.current.get(postId) || new Set();
-            current.add(comment);
-            pendingCommentEchoRef.current.set(postId, current);
-        }
-
-        function consumePendingCommentEcho(postId, comment) {
-            if (!postId || !comment) {
-                return false;
-            }
-
-            const current = pendingCommentEchoRef.current.get(postId);
-            if (!current || !current.has(comment)) {
-                return false;
-            }
-
-            current.delete(comment);
-            if (current.size === 0) {
-                pendingCommentEchoRef.current.delete(postId);
-            }
-
-            return true;
         }
 
         async function hydrateMissingCommentCounts(posts) {
@@ -717,20 +688,17 @@
                         try {
                             const event = JSON.parse(message.body);
                             if (event.postId) {
-                                const isPendingEcho = consumePendingCommentEcho(event.postId, event.comment);
                                 updatePostById(event.postId, (post) => {
                                     const next = { ...post };
-                                    if (!isPendingEcho) {
-                                        next.commentCount = (Number(post.commentCount) || 0) + 1;
+                                    next.commentCount = (Number(post.commentCount) || 0) + 1;
 
-                                        const newComment = {
-                                            id: Date.now(),
-                                            content: event.comment,
-                                            timestamp: new Date().toISOString(),
-                                            type: "COMMENT"
-                                        };
-                                        next.comments = [newComment, ...(next.comments || [])];
-                                    }
+                                    const newComment = {
+                                        id: Date.now(),
+                                        content: event.comment,
+                                        timestamp: new Date().toISOString(),
+                                        type: "COMMENT"
+                                    };
+                                    next.comments = [newComment, ...(next.comments || [])];
 
                                     return next;
                                 });
@@ -852,22 +820,6 @@
                 if (!response.ok) {
                     throw new Error(`comment failed: ${response.status}`);
                 }
-
-                markPendingCommentEcho(postId, comment);
-                updatePostById(postId, (post) => {
-                    const nextComment = {
-                        id: Date.now(),
-                        content: comment,
-                        timestamp: new Date().toISOString(),
-                        type: "COMMENT"
-                    };
-
-                    return {
-                        ...post,
-                        commentCount: (Number(post.commentCount) || 0) + 1,
-                        comments: [nextComment, ...(post.comments || [])]
-                    };
-                });
 
                 showToast(t("toastCommentSent"), "success");
             } catch (error) {
