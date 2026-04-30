@@ -37,9 +37,9 @@ User Browser → Spring Boot (EC2)
 
 ### Prerequisites
 - Java 17+
-- Maven 3.8+
-- Docker & Docker Compose (optional)
-- AWS CLI & credentials for Bedrock
+- Docker & Docker Compose
+- `curl` and `lsof` for local health checks and port checks
+- DeepSeek API key if you want the AI comment service to run
 
 ### Local Development
 
@@ -49,27 +49,55 @@ User Browser → Spring Boot (EC2)
    cd mood-wall
    ```
 
-2. **Start dependencies with Docker**
+2. **Make scripts executable**
    ```bash
-   docker-compose up -d
+   chmod +x mvnw run.sh stop.sh
    ```
 
-3. **Configure environment variables**
+3. **Start the whole project**
+
+   With AI comments enabled:
    ```bash
-   export AWS_ACCESS_KEY_ID=your-key
-   export AWS_SECRET_ACCESS_KEY=your-secret
-   export AWS_REGION=us-east-1
+   export DEEPSEEK_API_KEY=your-key
+   ./run.sh
    ```
 
-4. **Run application**
+   For basic UI/API testing without `ai-service`:
    ```bash
-   mvn spring-boot:run
+   SKIP_AI=1 ./run.sh
    ```
 
-5. **Access endpoints**
+   The script will:
+   - start Docker services: PostgreSQL, Redis, RabbitMQ, and Nginx
+   - build the Maven modules with tests skipped
+   - start `service-discovery`, `core-service`, optional `ai-service`, and `api-gateway`
+   - write service logs and PID files under `logs/`
+   - stop early if required ports are already in use
+
+4. **Access endpoints**
+   - Frontend: http://localhost
    - API: http://localhost:8080/api/posts
    - WebSocket: ws://localhost:8080/ws
    - Actuator: http://localhost:8080/actuator/health
+   - Logs: `logs/*.log`
+
+5. **Stop the project**
+   ```bash
+   ./stop.sh
+   ```
+
+   To stop and remove Docker Compose containers:
+   ```bash
+   ./stop.sh --down
+   ```
+
+   If a previous manual run left ports occupied, inspect them with:
+   ```bash
+   lsof -i :8080
+   lsof -i :8081
+   lsof -i :8082
+   lsof -i :8761
+   ```
 
 ### Docker Compose
 
