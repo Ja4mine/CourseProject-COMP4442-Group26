@@ -362,6 +362,18 @@
             return "status-other";
         }
 
+        function statusLabel(status) {
+            if (status === "APPROVED") {
+                return t("statusApproved");
+            }
+
+            if (status === "PENDING") {
+                return t("statusPending");
+            }
+
+            return t("statusUnknown");
+        }
+
         function toNumber(value) {
             const numberValue = Number(value);
             return Number.isFinite(numberValue) ? numberValue : 0;
@@ -395,7 +407,7 @@
             <article className="post-card reveal">
                 <div className="post-head">
                     <span className="post-meta">#{post.id ?? "-"} • {formatDate(post.createTime)}</span>
-                    <span className={`status ${statusClass(post.status)}`} aria-hidden="true"></span>
+                    <span className={`status ${statusClass(post.status)}`}>{statusLabel(post.status)}</span>
                 </div>
 
                 <p className="post-content">{post.content || t("emptyPost")}</p>
@@ -476,7 +488,6 @@
 
         const stompClientRef = useRef(null);
         const reconnectTimerRef = useRef(null);
-        const pendingCommentEchoRef = useRef(new Map());
 
         function t(key, params = {}) {
             return translate(language, key, params);
@@ -553,34 +564,6 @@
             return Array.isArray(posts) ? posts.map(post => ({ ...post, comments: [] })) : [];
         }
 
-        function markPendingCommentEcho(postId, comment) {
-            if (!postId || !comment) {
-                return;
-            }
-
-            const current = pendingCommentEchoRef.current.get(postId) || new Set();
-            current.add(comment);
-            pendingCommentEchoRef.current.set(postId, current);
-        }
-
-        function consumePendingCommentEcho(postId, comment) {
-            if (!postId || !comment) {
-                return false;
-            }
-
-            const current = pendingCommentEchoRef.current.get(postId);
-            if (!current || !current.has(comment)) {
-                return false;
-            }
-
-            current.delete(comment);
-            if (current.size === 0) {
-                pendingCommentEchoRef.current.delete(postId);
-            }
-
-            return true;
-        }
-
         async function hydrateMissingCommentCounts(posts) {
             const targets = (posts || []).filter((post) => post && post.id && post.status === "APPROVED" && Number(post.commentCount) === 0);
 
@@ -630,15 +613,6 @@
             }, ...previous].slice(0, 18));
         }
 
-        function publish(destination, payload) {
-            const client = stompClientRef.current;
-            if (!client || !connected) {
-                return;
-            }
-
-            client.send(destination, {}, JSON.stringify(payload));
-        }
-
         function setConnectionState(isConnected, textKey) {
             setConnected(isConnected);
             setConnectionTextKey(textKey);
@@ -679,6 +653,10 @@
                     client.subscribe("/topic/posts", (message) => {
                         try {
                             const post = JSON.parse(message.body);
+                            if (post.status === "PENDING") {
+                                return;
+                            }
+
                             // Initialize comments array for new post
                             post.comments = post.comments || [];
                             setTopPosts((previous) => prependUnique(previous, post));
@@ -710,20 +688,17 @@
                         try {
                             const event = JSON.parse(message.body);
                             if (event.postId) {
-                                const isPendingEcho = consumePendingCommentEcho(event.postId, event.comment);
                                 updatePostById(event.postId, (post) => {
                                     const next = { ...post };
-                                    if (!isPendingEcho) {
-                                        next.commentCount = (Number(post.commentCount) || 0) + 1;
+                                    next.commentCount = (Number(post.commentCount) || 0) + 1;
 
-                                        const newComment = {
-                                            id: Date.now(),
-                                            content: event.comment,
-                                            timestamp: new Date().toISOString(),
-                                            type: "COMMENT"
-                                        };
-                                        next.comments = [newComment, ...(next.comments || [])];
-                                    }
+                                    const newComment = {
+                                        id: Date.now(),
+                                        content: event.comment,
+                                        timestamp: new Date().toISOString(),
+                                        type: "COMMENT"
+                                    };
+                                    next.comments = [newComment, ...(next.comments || [])];
 
                                     return next;
                                 });
@@ -791,10 +766,6 @@
                 showToast(t("toastPostSuccess"), "success");
                 appendActivity("activityNewPost", { postId: post.id ?? "-" });
 
-                if (connected) {
-                    publish("/app/post.new", post);
-                }
-
                 if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
                     setMobileView("browse");
                 }
@@ -849,22 +820,6 @@
                 if (!response.ok) {
                     throw new Error(`comment failed: ${response.status}`);
                 }
-
-                markPendingCommentEcho(postId, comment);
-                updatePostById(postId, (post) => {
-                    const nextComment = {
-                        id: Date.now(),
-                        content: comment,
-                        timestamp: new Date().toISOString(),
-                        type: "COMMENT"
-                    };
-
-                    return {
-                        ...post,
-                        commentCount: (Number(post.commentCount) || 0) + 1,
-                        comments: [nextComment, ...(post.comments || [])]
-                    };
-                });
 
                 showToast(t("toastCommentSent"), "success");
             } catch (error) {

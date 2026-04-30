@@ -73,7 +73,7 @@ public class WallService {
 
     public List<WallPost> getTopPosts(int limit) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-        return wallPostRepository.findTopPostsSince(yesterday, Pageable.ofSize(limit));
+        return wallPostRepository.findTopPostsSince(yesterday, WallPost.PostStatus.APPROVED, Pageable.ofSize(limit));
     }
 
     public List<PostInteraction> getComments(Long postId) {
@@ -87,6 +87,7 @@ public class WallService {
         post.setStatus(WallPost.PostStatus.APPROVED);
         wallPostRepository.save(post);
         commentService.commentPost(postId, "AI_MODERATOR", aiComment);
+        messagingTemplate.convertAndSend("/topic/posts", post);
     }
 
     @Transactional
