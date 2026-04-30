@@ -362,6 +362,18 @@
             return "status-other";
         }
 
+        function statusLabel(status) {
+            if (status === "APPROVED") {
+                return t("statusApproved");
+            }
+
+            if (status === "PENDING") {
+                return t("statusPending");
+            }
+
+            return t("statusUnknown");
+        }
+
         function toNumber(value) {
             const numberValue = Number(value);
             return Number.isFinite(numberValue) ? numberValue : 0;
@@ -395,7 +407,7 @@
             <article className="post-card reveal">
                 <div className="post-head">
                     <span className="post-meta">#{post.id ?? "-"} • {formatDate(post.createTime)}</span>
-                    <span className={`status ${statusClass(post.status)}`} aria-hidden="true"></span>
+                    <span className={`status ${statusClass(post.status)}`}>{statusLabel(post.status)}</span>
                 </div>
 
                 <p className="post-content">{post.content || t("emptyPost")}</p>
@@ -630,15 +642,6 @@
             }, ...previous].slice(0, 18));
         }
 
-        function publish(destination, payload) {
-            const client = stompClientRef.current;
-            if (!client || !connected) {
-                return;
-            }
-
-            client.send(destination, {}, JSON.stringify(payload));
-        }
-
         function setConnectionState(isConnected, textKey) {
             setConnected(isConnected);
             setConnectionTextKey(textKey);
@@ -679,6 +682,10 @@
                     client.subscribe("/topic/posts", (message) => {
                         try {
                             const post = JSON.parse(message.body);
+                            if (post.status === "PENDING") {
+                                return;
+                            }
+
                             // Initialize comments array for new post
                             post.comments = post.comments || [];
                             setTopPosts((previous) => prependUnique(previous, post));
@@ -790,10 +797,6 @@
 
                 showToast(t("toastPostSuccess"), "success");
                 appendActivity("activityNewPost", { postId: post.id ?? "-" });
-
-                if (connected) {
-                    publish("/app/post.new", post);
-                }
 
                 if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
                     setMobileView("browse");
