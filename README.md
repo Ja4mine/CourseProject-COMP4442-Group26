@@ -24,6 +24,9 @@ A real-time, anonymous mood wall with AI moderation for university students.
 User Browser → Spring Boot (EC2)
 ├── PostController (REST API)
 ├── WebSocketController (Real-time)
+├── ClickAnalyticsController (Analytics API)
+├── InteractionController (Interactions API)
+├── PostCrudController (Admin CRUD API)
 ├── WallService (Business Logic)
 ├── AIModeratorAgentService (AI Agent)
 ├── Redis (Cache/Pub/Sub/Ranking)
@@ -106,6 +109,199 @@ Create anonymous post.
 
 ### GET /api/posts
 Get paginated approved posts.
+
+### Analytics API
+
+#### POST /api/analytics/post-click
+Record a post click for ranking.
+
+**Body:**
+```json
+{
+  "postId": 123
+}
+```
+
+#### POST /api/analytics/topic-click
+Record a topic click for ranking.
+
+**Body:**
+```json
+{
+  "topic": "exams"
+}
+```
+
+#### GET /api/analytics/top-posts
+Get top posts ranking by click count.
+
+**Query Parameters:**
+- `limit`: Number of results (default: 10)
+
+**Response:**
+```json
+[
+  {
+    "member": "post:123",
+    "score": 42.0
+  }
+]
+```
+
+#### GET /api/analytics/top-topics
+Get top topics ranking by click count.
+
+**Query Parameters:**
+- `limit`: Number of results (default: 10)
+
+**Response:**
+```json
+[
+  {
+    "member": "exams",
+    "score": 15.0
+  }
+]
+```
+
+#### DELETE /api/analytics/reset
+Reset daily rankings.
+
+### Interactions API
+
+CRUD operations for post interactions (likes and comments).
+
+#### GET /api/interactions
+List all interactions.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "post": { "id": 123, "content": "..." },
+    "type": "LIKE",
+    "userId": "user-hash-abc",
+    "content": null,
+    "createdAt": "2024-01-01T12:00:00"
+  }
+]
+```
+
+#### GET /api/interactions/{id}
+Get interaction by ID.
+
+**Path Parameters:**
+- `id`: Interaction ID
+
+#### POST /api/interactions
+Create a new interaction (like or comment).
+
+**Body:**
+```json
+{
+  "postId": 123,
+  "type": "COMMENT",
+  "userId": "user-hash-abc",
+  "content": "Great post!"
+}
+```
+
+**Response:** Created interaction object.
+
+#### PUT /api/interactions/{id}
+Update an existing interaction.
+
+**Path Parameters:**
+- `id`: Interaction ID
+
+**Body:**
+```json
+{
+  "type": "COMMENT",
+  "userId": "user-hash-abc",
+  "content": "Updated comment"
+}
+```
+
+**Response:** Updated interaction object.
+
+#### DELETE /api/interactions/{id}
+Delete an interaction.
+
+**Path Parameters:**
+- `id`: Interaction ID
+
+#### GET /api/interactions/post/{postId}
+Get all interactions for a specific post.
+
+**Path Parameters:**
+- `postId`: Post ID
+
+**Response:** Array of interaction objects for the post.
+
+### CRUD API
+
+Admin CRUD operations for Post entity.
+
+#### GET /api/crud/posts
+List all posts.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "content": "Final exams stress",
+    "author": "anonymous123",
+    "createdAt": "2024-01-01T12:00:00",
+    "updatedAt": "2024-01-01T12:00:00"
+  }
+]
+```
+
+#### GET /api/crud/posts/{id}
+Get post by ID.
+
+**Path Parameters:**
+- `id`: Post ID
+
+**Response:** Post object.
+
+#### POST /api/crud/posts
+Create a new post.
+
+**Body:**
+```json
+{
+  "content": "Post content",
+  "author": "author name"
+}
+```
+
+**Response:** Created post object.
+
+#### PUT /api/crud/posts/{id}
+Update an existing post.
+
+**Path Parameters:**
+- `id`: Post ID
+
+**Body:**
+```json
+{
+  "content": "Updated content",
+  "author": "Updated author"
+}
+```
+
+**Response:** Updated post object.
+
+#### DELETE /api/crud/posts/{id}
+Delete a post.
+
+**Path Parameters:**
+- `id`: Post ID
 
 ### WebSocket Events
 
