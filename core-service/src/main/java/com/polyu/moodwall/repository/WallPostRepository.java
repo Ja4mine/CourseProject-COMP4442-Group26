@@ -12,10 +12,10 @@ import java.util.List;
 
 @Repository
 public interface WallPostRepository extends JpaRepository<WallPost, Long> {
-    Page<WallPost> findByStatusOrderByCreateTimeDesc(WallPost.PostStatus status, Pageable pageable);
+    Page<WallPost> findAllByOrderByCreateTimeDesc(Pageable pageable);
 
-    @Query("SELECT wp FROM WallPost wp WHERE wp.createTime >= :since AND wp.status = :status ORDER BY wp.likeCount DESC")
-    List<WallPost> findTopPostsSince(LocalDateTime since, WallPost.PostStatus status, Pageable pageable);
+    @Query("SELECT wp FROM WallPost wp WHERE wp.createTime >= :since ORDER BY wp.likeCount DESC")
+    List<WallPost> findTopPostsSince(LocalDateTime since, Pageable pageable);
 
     long countByAnonymousIdHashAndCreateTimeAfter(String anonymousIdHash, LocalDateTime after);
 }

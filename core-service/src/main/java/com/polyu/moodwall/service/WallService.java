@@ -53,7 +53,6 @@ public class WallService {
         post.setContent(content);
         post.setImageUrl(imageUrl);
         post.setAnonymousIdHash(anonymousIdHash);
-        post.setStatus(WallPost.PostStatus.PENDING);
 
         WallPost saved = wallPostRepository.save(post);
 
@@ -63,17 +62,18 @@ public class WallService {
                 saved.getImageUrl(),
                 saved.getAnonymousIdHash()
         ));
+        messagingTemplate.convertAndSend("/topic/posts", saved);
 
         return saved;
     }
 
-    public Page<WallPost> getApprovedPosts(Pageable pageable) {
-        return wallPostRepository.findByStatusOrderByCreateTimeDesc(WallPost.PostStatus.APPROVED, pageable);
+    public Page<WallPost> getPosts(Pageable pageable) {
+        return wallPostRepository.findAllByOrderByCreateTimeDesc(pageable);
     }
 
     public List<WallPost> getTopPosts(int limit) {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-        return wallPostRepository.findTopPostsSince(yesterday, WallPost.PostStatus.APPROVED, Pageable.ofSize(limit));
+        return wallPostRepository.findTopPostsSince(yesterday, Pageable.ofSize(limit));
     }
 
     public List<PostInteraction> getComments(Long postId) {
@@ -81,13 +81,8 @@ public class WallService {
     }
 
     @Transactional
-    public void approvePostAndAddAiComment(Long postId, String aiComment) {
-        WallPost post = wallPostRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found: " + postId));
-        post.setStatus(WallPost.PostStatus.APPROVED);
-        wallPostRepository.save(post);
+    public void addAiComment(Long postId, String aiComment) {
         commentService.commentPost(postId, "AI_MODERATOR", aiComment);
-        messagingTemplate.convertAndSend("/topic/posts", post);
     }
 
     @Transactional

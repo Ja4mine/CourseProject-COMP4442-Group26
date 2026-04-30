@@ -35,13 +35,6 @@ public class WallPost {
     @CreationTimestamp
     private LocalDateTime createTime;
 
-    @Enumerated(EnumType.STRING)
-    private PostStatus status = PostStatus.PENDING;
-
     private Integer likeCount = 0;
     private Integer commentCount = 0;
-
-    public enum PostStatus {
-        PENDING, APPROVED, REJECTED, HIDDEN
-    }
 }
